@@ -14,46 +14,32 @@ jobs:
 
       - name: Find and extract ZIP
         run: |
-          echo "=== All files in repo ==="
+          echo "=== All files ==="
           ls -la
           
-          echo "=== Searching for ZIP files ==="
-          find . -name "*.zip" -o -name "*.ZIP"
-          
-          echo "=== Trying direct filename ==="
+          echo "=== Finding ZIP ==="
           if [ -f "html-live-wallpaper.zip" ]; then
-            echo "Found: html-live-wallpaper.zip"
             unzip "html-live-wallpaper.zip" -d extracted/
           else
-            echo "Direct file not found, trying find..."
             ZIP_FILE=$(find . -name "*.zip" | head -1)
-            if [ -z "$ZIP_FILE" ]; then
-              echo "ERROR: No ZIP file found anywhere!"
-              exit 1
-            fi
-            echo "Found via find: $ZIP_FILE"
             unzip "$ZIP_FILE" -d extracted/
           fi
           
-          echo "=== Extracted contents ==="
+          echo "=== Extracted ==="
           ls -la extracted/
           
-          echo "=== Moving files to root ==="
-          # Check nested folder
+          echo "=== Moving to root ==="
           NESTED=$(find extracted/ -mindepth 1 -maxdepth 1 -type d | head -1)
           if [ -n "$NESTED" ]; then
-            echo "Moving from nested: $NESTED"
             mv "$NESTED"/* . 2>/dev/null || true
             mv "$NESTED"/.* . 2>/dev/null || true
           else
             mv extracted/* . 2>/dev/null || true
-            mv extracted/.* . 2>/dev/null || true
           fi
           
-          rm -rf extracted/
-          rm -f *.zip
+          rm -rf extracted/ *.zip
           
-          echo "=== Final files ==="
+          echo "=== Final structure ==="
           ls -la
 
       - name: Set up JDK 17
@@ -62,15 +48,19 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build APK
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Generate Gradle Wrapper (if missing)
         run: |
           if [ ! -f "./gradlew" ]; then
-            echo "ERROR: gradlew not found!"
-            ls -la
-            exit 1
+            echo "gradlew not found, generating..."
+            gradle wrapper --gradle-version 8.5
           fi
           chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
