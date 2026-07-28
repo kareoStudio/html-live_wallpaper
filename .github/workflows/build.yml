@@ -14,31 +14,46 @@ jobs:
 
       - name: Find and extract ZIP
         run: |
-          # Find the ZIP file
-          ZIP_FILE=$(find . -name "*.zip" | head -1)
-          echo "Found ZIP: $ZIP_FILE"
+          echo "=== All files in repo ==="
+          ls -la
           
-          # Extract it
-          unzip "$ZIP_FILE" -d extracted/
+          echo "=== Searching for ZIP files ==="
+          find . -name "*.zip" -o -name "*.ZIP"
           
-          # Show what was extracted
+          echo "=== Trying direct filename ==="
+          if [ -f "html-live-wallpaper.zip" ]; then
+            echo "Found: html-live-wallpaper.zip"
+            unzip "html-live-wallpaper.zip" -d extracted/
+          else
+            echo "Direct file not found, trying find..."
+            ZIP_FILE=$(find . -name "*.zip" | head -1)
+            if [ -z "$ZIP_FILE" ]; then
+              echo "ERROR: No ZIP file found anywhere!"
+              exit 1
+            fi
+            echo "Found via find: $ZIP_FILE"
+            unzip "$ZIP_FILE" -d extracted/
+          fi
+          
+          echo "=== Extracted contents ==="
           ls -la extracted/
           
-          # Move files from nested folder to root (if needed)
-          if [ -d "extracted/html-live-wallpaper" ]; then
-            mv extracted/html-live-wallpaper/* .
-            mv extracted/html-live-wallpaper/.* . 2>/dev/null || true
+          echo "=== Moving files to root ==="
+          # Check nested folder
+          NESTED=$(find extracted/ -mindepth 1 -maxdepth 1 -type d | head -1)
+          if [ -n "$NESTED" ]; then
+            echo "Moving from nested: $NESTED"
+            mv "$NESTED"/* . 2>/dev/null || true
+            mv "$NESTED"/.* . 2>/dev/null || true
           else
-            mv extracted/* .
+            mv extracted/* . 2>/dev/null || true
             mv extracted/.* . 2>/dev/null || true
           fi
           
-          # Clean up
           rm -rf extracted/
-          rm -f "$ZIP_FILE"
+          rm -f *.zip
           
-          # Show final structure
-          echo "Final structure:"
+          echo "=== Final files ==="
           ls -la
 
       - name: Set up JDK 17
@@ -46,16 +61,19 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: gradle
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
-
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
+      - name: Build APK
+        run: |
+          if [ ! -f "./gradlew" ]; then
+            echo "ERROR: gradlew not found!"
+            ls -la
+            exit 1
+          fi
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: app/build/outputs/apk/debug/app
+          path: app/build/outputs/apk/debug/app-debug.apk
