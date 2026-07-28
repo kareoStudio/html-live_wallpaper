@@ -14,9 +14,6 @@ jobs:
 
       - name: Find and extract ZIP
         run: |
-          echo "=== Files before extract ==="
-          ls -la
-          
           echo "=== Extracting ZIP ==="
           if [ -f "html-live-wallpaper.zip" ]; then
             unzip "html-live-wallpaper.zip" -d extracted/
@@ -25,29 +22,14 @@ jobs:
             unzip "$ZIP_FILE" -d extracted/
           fi
           
-          echo "=== Extracted contents ==="
-          ls -la extracted/
-          
-          echo "=== Finding project folder ==="
-          # Find the folder that has settings.gradle.kts
           PROJECT_DIR=$(find extracted/ -name "settings.gradle.kts" | head -1 | xargs dirname)
-          echo "Project folder: $PROJECT_DIR"
-          ls -la "$PROJECT_DIR"
-          
-          echo "=== Copying ALL files to root ==="
-          # Use cp -r to properly copy everything including subdirectories
           cp -r "$PROJECT_DIR"/* . 2>/dev/null || true
           cp -r "$PROJECT_DIR"/.* . 2>/dev/null || true
           
-          echo "=== Cleanup ==="
           rm -rf extracted/ *.zip
           
-          echo "=== Final structure ==="
+          echo "=== Final files ==="
           ls -la
-          echo "=== gradle folder ==="
-          ls -la gradle/
-          echo "=== libs.versions.toml ==="
-          cat gradle/libs.versions.toml
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -62,7 +44,7 @@ jobs:
         run: |
           if [ ! -f "./gradlew" ]; then
             echo "Generating gradlew..."
-            gradle wrapper --gradle-version 8.5
+            gradle wrapper --gradle-version 9.3.1
           fi
           chmod +x ./gradlew
 
