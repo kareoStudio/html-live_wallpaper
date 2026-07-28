@@ -14,7 +14,6 @@ jobs:
 
       - name: Find and extract ZIP
         run: |
-          echo "=== Extracting ZIP ==="
           if [ -f "html-live-wallpaper.zip" ]; then
             unzip "html-live-wallpaper.zip" -d extracted/
           else
@@ -27,8 +26,6 @@ jobs:
           cp -r "$PROJECT_DIR"/.* . 2>/dev/null || true
           
           rm -rf extracted/ *.zip
-          
-          echo "=== Final files ==="
           ls -la
 
       - name: Set up JDK 17
@@ -43,10 +40,13 @@ jobs:
       - name: Generate Gradle Wrapper
         run: |
           if [ ! -f "./gradlew" ]; then
-            echo "Generating gradlew..."
             gradle wrapper --gradle-version 9.3.1
           fi
           chmod +x ./gradlew
+
+      - name: Generate Debug Keystore
+        run: |
+          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --no-daemon
